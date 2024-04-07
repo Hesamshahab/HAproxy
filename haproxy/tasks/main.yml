@@ -1,0 +1,46 @@
+---
+- name: Loadbalancer-HAProxy | Main | Collect only facts returned by os_family
+  setup:
+    gather_subset:
+      - '!all'
+      - '!min'
+      - os_family
+  tags:
+    - always
+
+- name: Loadbalancer-HAProxy | Main | Include tasks for package maining
+  include_tasks:
+    file: "{{ task }}"
+    apply:
+      tags:
+        - pkg
+  loop:
+    - preflight.yml   
+    - pkg-config.yml
+  loop_control:
+    loop_var: task
+  tags:
+    - pkg
+
+- name: Loadbalancer-HAProxy | Main | Include tasks for podman maining
+  include_tasks:
+    file: "{{ task }}"
+    apply:
+      tags:
+        - podman
+  loop:
+    - preflight.yml   
+    - podman-config.yml
+  loop_control:
+    loop_var: task
+  tags: 
+    - podman
+
+- name: Loadbalancer-HAProxy | Main | Flush handlers
+  meta: flush_handlers
+  tags: 
+    - always
+
+- name: Loadbalancer-HAProxy | Main | Import verify task
+  import_tasks:
+    file: verify.yml

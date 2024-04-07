@@ -1,0 +1,10 @@
+---
+- name: Loadbalancer-HAProxy | Preflight | Check essential variables
+  assert:
+    that:
+      - haproxy_listen_port is defined
+    fail_msg: "Make sure all necessary variables id defined,Also make sure haproxy user and group are haproxy"
+  tags: 
+    - always
+
+...

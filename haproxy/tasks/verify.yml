@@ -1,0 +1,48 @@
+---
+- name: Loadbalancer-HAProxy | Verify | Check haproxy service status 
+  systemd:
+    name: 'haproxy.service'
+  register: haproxy_service_status
+  tags:
+    - pkg 
+
+- name: Loadbalancer-HAProxy | Verify | Ensure haproxy service is started
+  fail:
+    msg: The haproxy service is not started
+  when: haproxy_service_status.status.ActiveState != "active"
+  ignore_errors: yes
+  tags:
+    - pkg 
+
+- name: Loadbalancer-HAProxy | Verify | Check {{ haproxy_container_name }} container status
+  containers.podman.podman_container_info:
+    name: "{{ haproxy_container_name }}"
+  register: 'haproxy_container_status'
+  tags:
+    - podman
+
+- name: Loadbalancer-HAProxy | Verify | Check {{ haproxy_container_name }} container is running
+  fail:
+    msg: The {{ haproxy_container_name }} service is not started
+  when: 'haproxy_container_status.containers[0].Name != haproxy_container_name and haproxy_container_status.containers[0].State.Status != "running"'
+  ignore_errors: yes
+  tags:
+    - podman
+
+- name: Loadbalancer-HAProxy | Verify | Gather facts on listening ports
+  community.general.listen_ports_facts:
+  tags:
+    - always
+
+- name: Loadbalancer-HAProxy | Verify | TCP whitelist violation
+  debug:
+    msg: TCP port {{ item.port }} by pid {{ item.pid }} violates the whitelist
+  vars:
+    tcp_listen_violations: "{{ ansible_facts.tcp_listen | selectattr('port', 'in', tcp_whitelist) | list }}"
+    tcp_whitelist: "{{ haproxy_listen_port }}"
+  loop: "{{ tcp_listen_violations }}"
+  ignore_errors: yes 
+  tags: 
+   - always
+
+...

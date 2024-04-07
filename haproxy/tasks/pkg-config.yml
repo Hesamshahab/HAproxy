@@ -1,0 +1,27 @@
+---
+- name: Loadbalancer-HAProxy | Pkg-config | Ensure haproxy is installed
+  package: 
+    name: haproxy 
+    state: present
+
+- name: Loadbalancer-HAProxy | Pkg-config | Configuration selinux
+  shell: 'setsebool -P haproxy_connect_any=1'
+
+- name: Loadbalancer-HAProxy | Pkg-config | Get haproxy version.
+  command: haproxy -v
+  register: haproxy_version_result
+  changed_when: false
+  check_mode: false
+
+- name: Loadbalancer-HAProxy | Pkg-config | Set haproxy version.
+  set_fact:
+    haproxy_version: '{{ haproxy_version_result.stdout_lines[0] | regex_replace("^HA-?Proxy version (\d+(\.\d+)*).*$", "\1") }}'
+
+- name: Loadbalancer-HAProxy | Pkg-config | Copy haproxy configuration in place.
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: 0644
+    validate: haproxy -f %s -c -q
+  notify: restart haproxy
+

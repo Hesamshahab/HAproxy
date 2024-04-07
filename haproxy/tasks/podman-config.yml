@@ -1,0 +1,63 @@
+---
+- name: Loadbalancer-HAProxy | Podman-config | Add Lego group
+  become: true
+  group:
+    name: "{{ haproxy_group }}"
+    state: present
+
+- name: Loadbalancer-HAProxy | Podman-config | Add Lego user
+  become: true
+  user:
+    name: "{{ haproxy_user }}"
+    comment: haproxy user
+    group: "{{ haproxy_group }}"
+    groups: "{{ haproxy_group }}"
+    system: true
+
+- name: Loadbalancer-HAProxy | Podman-config | Create haproxy data directory
+  file:
+    path: "{{ haproxy_config_path }}"
+    state: directory
+    owner: "{{ haproxy_user }}"
+    group: "{{ haproxy_group }}"
+    mode: '0755'
+
+- name: Loadbalancer-HAProxy | Podman-config | Create haproxy data directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ haproxy_user }}"
+    group: "{{ haproxy_group }}"
+    mode: '0755'
+  loop:
+    - "{{ haproxy_socket }}"
+    - "{{ haproxy_chroot }}"
+    - "{{ haproxy_cert_path }}"
+  ignore_errors: true
+
+- name: Loadbalancer-HAProxy | Podman-config | Replace haproxy.cfg
+  template:
+    src: ./templates/haproxy.cfg.j2
+    dest: '{{ haproxy_config_path }}/haproxy.cfg'
+  notify: "restart haproxy podman"
+
+- name: Loadbalancer-HAProxy | Podman-config | Launch haproxy container
+  containers.podman.podman_container:
+    image: "{{ haproxy_podman_image }}"
+    name: "{{ haproxy_container_name }}"
+    volumes:
+      - "{{ haproxy_socket }}:/var/lib/haproxy/stats:z"
+      - "{{ haproxy_chroot }}:/var/lib/haproxy:z"
+      - "{{ haproxy_config_path }}:/etc/haproxy:z"
+      - "{{ haproxy_cert_path }}:/opt/certificates:z"
+    restart_policy: "{{ haproxy_container_restart_policy }}"
+    command: "-f /etc/haproxy/haproxy.cfg"
+    published_ports: "{{ haproxy_container_ports }}"
+    state: started
+    generate_systemd:
+      path: /etc/systemd/system
+      restart_policy: "{{ haproxy_service_restart_policy }}"
+      container_prefix: container
+  notify: "restart haproxy podman"
+
+...

@@ -1,0 +1,85 @@
+---
+haproxy_socket: ''
+haproxy_chroot: ''
+haproxy_user: ''
+haproxy_group: ''
+haproxy_config_path: /etc/haproxy
+haproxy_cert_path: /opt/certificates
+haproxy_version: '2.8.1'
+haproxy_podman_image: '{{ haproxy_podman_repo }}:{{ haproxy_version }}'
+haproxy_podman_repo: 'docker.io/haproxytech/haproxy-alpine'
+haproxy_container_name: 'haproxy'
+haproxy_container_restart_policy: 'no' # "no""on-success""on-failure""on-abnormal""on-watchdog""on-abort""always"
+haproxy_service_restart_policy: 'always' # "no""on-success""on-failure""on-abnormal""on-watchdog""on-abort""always"
+haproxy_container_ports: ['80:80','443:443']
+haproxy_listen_port:
+  - 80
+  - 443
+haproxy_proxy_protocol: true
+
+# Default haproxy timeouts
+haproxy_defaults:
+  log: ''
+  mode: ''
+  option: ''
+  connect_timeout: 5000
+  client_timeout: 50000
+  server_timeout: 50000
+
+
+# Frontend settings.
+haproxy_frontend:
+- name: 'http'
+  bind_address: '*'
+  port: 80
+  mode: 'tcp'
+  default_backend: 'httpbackend'
+  stats: []
+
+- name: 'https'
+  bind_address: '*'
+  port: 443
+  mode: 'tcp'
+  default_backend: 'httpsbackend'
+  stats: []
+
+# haproxy_frontend_custom:
+# - name: ''
+#   configuration: |
+#     mode: httpa |
+
+# Backend settings.
+haproxy_backend:
+- name: 'httpbackend'
+  mode: 'tcp'
+  balance_method: 'roundrobin'
+  options: []
+  cookies: []
+  servers: 
+  - name: app1
+    address: 192.168.121.1:3280 
+
+- name: 'httpsbackend'
+  mode: 'tcp'
+  balance_method: 'roundrobin'
+  options: []
+  cookies: []
+  servers: 
+  - name: app1
+    address: 192.168.121.1:32443   
+
+# haproxy_backend_custom:
+# - name: TESTING
+#   configuration: |
+#     mode: tcp
+#     balance_method: roundrobin
+
+# Custom global vars.
+haproxy_global_vars: []
+
+
+# Errorr files
+haproxy_errorfile_path: '' # /etc/haproxy/errors/400.http
+haproxy_error_code:
+  - ''
+# - 403

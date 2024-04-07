@@ -1,0 +1,106 @@
+#jinja2: trim_blocks: True, lstrip_blocks: True
+{% if haproxy_global_vars is defined %}
+{% for global_var in haproxy_global_vars %}
+  {{ global_var }}
+{% endfor %}
+{% endif %}
+{% if haproxy_defaults.log is defined or haproxy_defaults.mode is defined or haproxy_defaults.option is defined or haproxy_defaults.connect_timeout is defined or haproxy_defaults.client_timeout is defined or haproxy_defaults.server_timeout  is defined %}
+defaults
+{% if haproxy_defaults.log is defined %}
+  log {{ haproxy_defaults.log }}
+{% endif %}
+{% if haproxy_defaults.mode is defined %}
+  mode  {{ haproxy_defaults.mode }}
+{% endif %}
+{% if haproxy_defaults.option is defined %}
+  option  {{ haproxy_defaults.option }}
+{% endif %}
+{% if haproxy_version is version('1.4', '<=') %}
+{% if haproxy_defaults.connect_timeout is defined %}
+        contimeout {{ haproxy_defaults.connect_timeout }}
+{% endif %}
+{% if haproxy_defaults.client_timeout is defined %}
+        clitimeout {{ haproxy_defaults.client_timeout }}
+{% endif %}
+{% if haproxy_defaults.server_timeout is defined %}
+        srvtimeout {{ haproxy_defaults.server_timeout }}
+{% endif %}
+{% else %}
+{% if haproxy_defaults.connect_timeout is defined %}
+        timeout connect {{ haproxy_defaults.connect_timeout }}
+{% endif %}
+{% if haproxy_defaults.client_timeout is defined %}
+        timeout client {{ haproxy_defaults.client_timeout }}
+{% endif %}
+{% if haproxy_defaults.server_timeout is defined %}
+        timeout server {{ haproxy_defaults.server_timeout }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% if ansible_os_family == 'Debian' %}
+{% if haproxy_errorfile_path is defined and haproxy_error_code is defined %}
+{% for code in  haproxy_error_code %}
+  errorfile {{ code }} {{ haproxy_errorfile_path }}/{{ code }}.http
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if haproxy_frontend is defined %}
+{% for frontend in haproxy_frontend %}
+frontend {{frontend.name }}
+  bind {{ frontend.bind_address }}:{{ frontend.port }}
+  mode {{ frontend.mode }}
+  {% if frontend.default_backend is defined %}
+  default_backend {{ frontend.default_backend }}
+  {% endif %}
+  {% if frontend.stats is defined %}
+  {% for state in frontend.stats %}
+  stats {{ state }}
+  {% endfor %}
+  {% endif %}
+{% endfor %}
+{% endif %}
+{% if haproxy_frontend_custom is defined %}
+{% for frontend_custom in haproxy_frontend_custom %}
+frontend {{ frontend_custom.name }}
+{{ frontend_custom.configuration }}
+{% endfor %}
+{% endif %}
+{% if haproxy_backend is defined %}
+{% for backend in haproxy_backend %}
+backend {{ backend.name }}
+  mode {{ backend.mode }}
+  balance {{ backend.balance_method }}
+  {% if backend.options is defined %}    
+  {% for option in backend.options %}
+  option {{ option }} 
+  {% endfor %}
+  {% endif %}
+  {% if backend.cookies is defined %}
+  {% for cookie in backend.cookies %}
+  cookie {{ cookie }}
+  {% endfor %}
+  {% endif %}
+  {% if backend.mode == "http" %}
+  {% for srv in backend.servers %}
+  server {{ srv.name }} {{ srv.address }} cookie {{ srv.name }} check
+  {% endfor %}
+  {% endif %}
+  {% if backend.mode == "tcp" and not haproxy_proxy_protocol  %}
+  {% for srv in backend.servers %}
+  server {{ srv.name }} {{ srv.address }} check
+  {% endfor %}
+  {% endif %}
+  {% if backend.mode == "tcp" and haproxy_proxy_protocol %}
+  {% for srv in backend.servers %}
+  server {{ srv.name }} {{ srv.address }} check send-proxy-v2
+  {% endfor %}
+  {% endif %}
+{% endfor %}
+{% endif %}
+{% if haproxy_backend_custom is defined %}
+{% for backend_custom in haproxy_backend_custom %}
+backend {{ backend_custom.name }}
+{{ backend_custom.configuration }}
+{% endfor %}
+{% endif %}
+

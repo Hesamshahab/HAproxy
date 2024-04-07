@@ -1,0 +1,29 @@
+---
+- name: Loadbalancer-HAProxy | Handlers | Restart haproxy
+  listen: restart haproxy
+  systemd: 
+    name: haproxy 
+    state: restarted
+    enabled: yes
+  tags:
+    - pkg
+
+- name: Loadbalancer-HAProxy | Handlers | Restart podman
+  listen: restart podman
+  systemd:
+    name: podman
+    state: restarted
+    enabled: yes
+  tags:
+    - podman
+
+- name: Loadbalancer-HAProxy | Handlers | Restart haproxy podman service
+  listen: "restart haproxy podman"
+  systemd:
+    daemon_reload: true
+    name: "container-{{ haproxy_container_name }}"
+    state: restarted
+    enabled: true
+  tags:
+    - podman
+

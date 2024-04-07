@@ -1,0 +1,18 @@
+---
+- name: Converge
+  hosts: all
+  become: yes
+  tasks:
+  - name: lb-haproxy | converge | Incloud DNS tasks
+    include_tasks:
+      file: dns.yml
+    tags:
+      - always
+
+  - name: "Include jibit.haproxy"
+    ansible.builtin.include_role:
+      name: haproxy
+    tags:
+      - podman
+      - pkg
+      
